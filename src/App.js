@@ -6,17 +6,37 @@ import styles from './App.module.css'
 import MediumEditor from 'medium-editor'
 import 'medium-editor/dist/css/medium-editor.css'
 import 'medium-editor/dist/css/themes/default.css'
+import Web3 from 'web3';
+import Wikipedia from './contracts/Wikipedia.sol';
+
+const HandleSubmit = (e, content) => {
+  e.preventDefault();
+  alert(content.content);
+
+  const [articles, setArticles] = useState([]);
+  const contract = useSelector(({ contract }) => contract);
+  useEffect(() => {
+    if (contract) {
+      contract.methods.newArticle(content).call()
+    }
+  }, [contract, setArticles]);
+}
 
 const NewArticle = () => {
+  const [content, setContent] = useState(0);
+
   const [editor, setEditor] = useState(null)
   useEffect(() => {
     setEditor(new MediumEditor(`.${styles.editable}`))
   }, [setEditor])
   return (
-    <form>
+    <form onSubmit={(e) => HandleSubmit(e, {content})}>
       <div className={styles.subTitle}>New article</div>
       <div className={styles.mediumWrapper}>
-        <textarea className={styles.editable} />
+        <input type="text" className={styles.editable} placeholder="Type your text here" onChange={(e)=>setContent(e.target.value)} />
+        {/*
+        <textarea className={styles.editable} onChange={(e)=>alert("update")} />
+        */}
       </div>
       <input type="submit" value="Submit" />
     </form>
@@ -50,6 +70,7 @@ const NotFound = () => {
 }
 
 const App = () => {
+
   const dispatch = useDispatch()
   useEffect(() => {
     dispatch(Ethereum.connect)
