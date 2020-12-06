@@ -6,42 +6,6 @@ import styles from './App.module.css'
 import MediumEditor from 'medium-editor'
 import 'medium-editor/dist/css/medium-editor.css'
 import 'medium-editor/dist/css/themes/default.css'
-import Web3 from 'web3';
-import Wikipedia from './contracts/Wikipedia.sol';
-
-const HandleSubmit = (e, content) => {
-  e.preventDefault();
-  alert(content.content);
-
-  const [articles, setArticles] = useState([]);
-  const contract = useSelector(({ contract }) => contract);
-  useEffect(() => {
-    if (contract) {
-      contract.methods.newArticle(content).call()
-    }
-  }, [contract, setArticles]);
-}
-
-const NewArticle = () => {
-  const [content, setContent] = useState(0);
-
-  const [editor, setEditor] = useState(null)
-  useEffect(() => {
-    setEditor(new MediumEditor(`.${styles.editable}`))
-  }, [setEditor])
-  return (
-    <form onSubmit={(e) => HandleSubmit(e, {content})}>
-      <div className={styles.subTitle}>New article</div>
-      <div className={styles.mediumWrapper}>
-        <input type="text" className={styles.editable} placeholder="Type your text here" onChange={(e)=>setContent(e.target.value)} />
-        {/*
-        <textarea className={styles.editable} onChange={(e)=>alert("update")} />
-        */}
-      </div>
-      <input type="submit" value="Submit" />
-    </form>
-  )
-}
 
 const Home = () => {
   return (
@@ -54,23 +18,97 @@ const Home = () => {
 }
 
 const AllArticles = () => {
-  const [articles, setArticles] = useState([])
-  const contract = useSelector(({ contract }) => contract)
+  const [articles, setArticles] = useState([]);
+  const contract = useSelector(({ contract }) => contract);
+
+
+
   useEffect(() => {
+
+    const art = [];
+
     if (contract) {
-      contract.methods.articleContent(0).call().then(console.log)
-      contract.methods.getAllIds().call().then(console.log)
-    }
-  }, [contract, setArticles])
-  return <div>{articles.map(article => article)}</div>
+      async function f() {
+      let ids=await contract.methods.getAllIds().call();
+
+        ids.forEach(async i => {
+            let content= await contract.methods.articleContent(i).call();
+            art.push(content);
+            //console.log("content iteration");
+            //console.log("<:"+art);
+
+
+            console.log(">:"+art);
+
+
+        }); //end foreach
+
+        setArticles(article => [...art]);
+        console.log("c fini");
+
+
+
+
+        /*
+        ids.map(async i => {
+            let content = await contract.methods.articleContent(i).call();
+            //console.log("content iteration");
+            console.log("<:"+art);
+            art.push(content);
+            console.log(">:"+art);
+            setArticles(article => [...articles, content]);
+            console.log(art);
+        });
+        */
+
+      }
+      f();
+      }
+
+
+
+  }, [contract, setArticles]);
+
+  return <div>{articles.map((article, index) => {
+    console.log("map iteration");
+    return <div key={index}>{article}</div>;
+  }
+)}</div>
 }
+
+const NewArticle = () => {
+  const contract = useSelector(({ contract }) => contract);
+  const [editor, setEditor] = useState(null);
+
+  const handleSubmit = e => {
+    e.preventDefault();
+    if (contract) {
+      contract.methods.addArticle(editor.getContent()).send();
+    }
+  };
+  useEffect(() => {
+    setEditor(new MediumEditor(`.${styles.editable}`))
+  }, [setEditor]);
+  return (
+    <form onSubmit={handleSubmit}>
+      <div className={styles.subTitle}>New article</div>
+      <div className={styles.mediumWrapper}>
+        <textarea className={styles.editable} />
+      </div>
+      <input type="submit" value="Submit" />
+    </form>
+  );
+}
+
+// const EditArticle = () => {
+//   return ("TODO");
+// }
 
 const NotFound = () => {
   return <div>Not found</div>
 }
 
 const App = () => {
-
   const dispatch = useDispatch()
   useEffect(() => {
     dispatch(Ethereum.connect)

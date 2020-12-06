@@ -27,6 +27,7 @@ contract Wikipedia {
 
   function addArticle(string memory content) public {
     uint index = ids.length;
+    ids.push(index);
     Article memory newArticle = Article(content);
     articlesById[index] = newArticle;
   }
