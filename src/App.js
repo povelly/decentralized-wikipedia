@@ -10,10 +10,10 @@ import DOMPurify from 'dompurify';
 
 const Navbar = () => {
   return (
-    <ul class={styles.u_nav}>
-      <li class={styles.li_nav}><Link class={styles.li_nav_link} to="/">Home</Link></li>
-      <li class={styles.li_nav}><Link class={styles.li_nav_link} to="/article/new">+ Article</Link></li>
-      <li class={styles.li_nav}><Link class={styles.li_nav_link} to="/article/all">Articles</Link></li>
+    <ul className={styles.u_nav}>
+      <li className={styles.li_nav}><Link className={styles.li_nav_link} to="/">Home</Link></li>
+      <li className={styles.li_nav}><Link className={styles.li_nav_link} to="/article/new">+ Article</Link></li>
+      <li className={styles.li_nav}><Link className={styles.li_nav_link} to="/article/all">Articles</Link></li>
     </ul>
   );
 }
@@ -22,6 +22,7 @@ const Home = () => {
   return (
     <div>
       <div>
+        <em>Made by Quentin Piotrowski and PO Velly</em>
         <h5>Implemented features</h5>
         <ul>
           <li>List all articles <em>(/article/all)</em></li>
@@ -55,20 +56,14 @@ const AllArticles = () => {
     }
   }, [contract, setArticles]);
 
-  return <div>
-      {// <div className={styles.links}>
-      //   <Link to="/">Home</Link>
-      // </div>
-    }
-      <div className={styles.articleList}>
-          {articles.map((article,index) => {
-            return <div className={styles.articleWrapper} key={index}> Article #{index} : <Link to={"/article/edit/" + index}>Edit</Link>
-        {  /* <Link to={"/article/" + index }> View </Link> */}
-                <div className={styles.articleContent} dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(article)}} />
-            </div>}
-          )}
-      </div> {/* articleWrapper*/}
-    </div>
+  return (
+    <div className={styles.articleList}>
+      {articles.map((article, id) => {
+        return (<div className={styles.articleWrapper} key={id}> Article #{id} : <Link to={"/article/edit/" + id}>Edit</Link>
+            <div className={styles.articleContent} dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(article)}} />
+        </div>)}
+      )}
+    </div>);
 }
 
 const NewArticle = () => {
@@ -76,7 +71,6 @@ const NewArticle = () => {
   const [editor, setEditor] = useState(null);
 
   const handleSubmit = () => {
-    // e.preventDefault();
     if (contract) {
       contract.methods.addArticle(editor.getContent()).send();
     }
@@ -99,15 +93,26 @@ const DisplayArticle = () => {
   const contract = useSelector(({ contract }) => contract);
   const { id } = useParams();
   const [content, setContent] = useState(null);
+  const [status, setStatus] = useState("EXISTING");
 
   if (contract) {
-    contract.methods.articleContent(id).call().then((res) => {
-      if (res !== "")
-        setContent(res);
-      else
-        setContent("<em>404 - Article " + id + " does not exist</em>");
+
+    contract.methods.getAllIds().call().then((ids) => {
+
+      if (ids.includes(id)) {
+        contract.methods.articleContent(id).call().then((res) => {
+            setContent(res);
+        });
+      } else {
+        setStatus("DOESNT_EXIST");
+      }
+
     });
+
   }
+
+  if (status === "DOESNT_EXIST")
+    return (<div><em>404 - Article #{id} does not exist</em></div>);
 
   return (
     <div id="article" dangerouslySetInnerHTML={{__html: DOMPurify.sanitize("<h5>Article #" + id + "</h5>" + content )}} />
@@ -118,6 +123,7 @@ const EditArticle = () => {
   const contract = useSelector(({ contract }) => contract);
   const [editor, setEditor] = useState(null);
   const { id } = useParams();
+  const [status, setStatus] = useState("EXISTING");
 
   const handleSubmit = e => {
     e.preventDefault();
@@ -127,14 +133,29 @@ const EditArticle = () => {
   };
   useEffect(() => {
     if (contract) {
-      contract.methods.articleContent(id).call().then((res) => {
-        const editor = new MediumEditor(`.${styles.editable}`);
-        editor.setContent(res);
-        setEditor(editor);
+
+      contract.methods.getAllIds().call().then((ids) => {
+
+        if (ids.includes(id)) {
+
+          contract.methods.articleContent(id).call().then((res) => {
+
+            const editor = new MediumEditor(`.${styles.editable}`);
+            editor.setContent(res);
+            setEditor(editor);
+          });
+
+        } else {
+          setStatus("DOESNT_EXIST");
+        }
       });
+
     }
 
   }, [setEditor, contract, id]);
+
+  if (status === "DOESNT_EXIST")
+    return (<div><em>404 - Article #{id} does not exist</em></div>);
 
   return (
     <form onSubmit={handleSubmit}>
@@ -160,7 +181,6 @@ const App = () => {
     <div className={styles.app}>
       <Navbar />
       <h1 className={styles.title}>Welcome to Decentralized Wikipedia</h1>
-      <em>Made by Quentin Piotrowski and PO Velly</em>
       <Switch>
         <Route path="/article/new">
           <NewArticle />
