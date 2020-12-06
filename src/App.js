@@ -8,12 +8,33 @@ import 'medium-editor/dist/css/medium-editor.css'
 import 'medium-editor/dist/css/themes/default.css'
 import DOMPurify from 'dompurify';
 
+const Navbar = () => {
+  return (
+    <ul class={styles.u_nav}>
+      <li class={styles.li_nav}><Link class={styles.li_nav_link} to="/">Home</Link></li>
+      <li class={styles.li_nav}><Link class={styles.li_nav_link} to="/article/new">+ Article</Link></li>
+      <li class={styles.li_nav}><Link class={styles.li_nav_link} to="/article/all">Articles</Link></li>
+    </ul>
+  );
+}
+
 const Home = () => {
   return (
-    <div className={styles.links}>
-      <Link to="/">Home</Link>
-      <Link to="/article/new">Add an article</Link>
-      <Link to="/article/all">All articles</Link>
+    <div>
+      <div>
+        <h5>Implemented features</h5>
+        <ul>
+          <li>List all articles <em>(/article/all)</em></li>
+          <li>Display an article <em>(/article/display/[article ID])</em></li>
+          <li>Create a new article <em>(/article/new)</em></li>
+          <li>Edit an existing article <em>(/article/edit/[article ID])</em></li>
+        </ul>
+      </div>
+      <div className={styles.links}>
+        <Link to="/">Home</Link>
+        <Link to="/article/new">Add an article</Link>
+        <Link to="/article/all">All articles</Link>
+      </div>
     </div>
   )
 }
@@ -137,7 +158,9 @@ const App = () => {
   }, [dispatch])
   return (
     <div className={styles.app}>
-      <div className={styles.title}>Welcome to Decentralized Wikipedia</div>
+      <Navbar />
+      <h1 className={styles.title}>Welcome to Decentralized Wikipedia</h1>
+      <em>Made by Quentin Piotrowski and PO Velly</em>
       <Switch>
         <Route path="/article/new">
           <NewArticle />
