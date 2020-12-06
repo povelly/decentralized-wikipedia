@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { Switch, Link, Route } from 'react-router-dom'
+import { Switch, Link, Route, useParams } from 'react-router-dom'
 import * as Ethereum from './services/Ethereum'
 import styles from './App.module.css'
 import MediumEditor from 'medium-editor'
 import 'medium-editor/dist/css/medium-editor.css'
 import 'medium-editor/dist/css/themes/default.css'
+import DOMPurify from 'dompurify';
 
 const Home = () => {
   return (
@@ -21,67 +22,40 @@ const AllArticles = () => {
   const [articles, setArticles] = useState([]);
   const contract = useSelector(({ contract }) => contract);
 
-
-
   useEffect(() => {
-
-    const art = [];
-
     if (contract) {
-      async function f() {
-      let ids=await contract.methods.getAllIds().call();
-
-        ids.forEach(async i => {
-            let content= await contract.methods.articleContent(i).call();
-            art.push(content);
-            //console.log("content iteration");
-            //console.log("<:"+art);
-
-
-            console.log(">:"+art);
-
-
-        }); //end foreach
-
-        setArticles(article => [...art]);
-        console.log("c fini");
-
-
-
-
-        /*
-        ids.map(async i => {
-            let content = await contract.methods.articleContent(i).call();
-            //console.log("content iteration");
-            console.log("<:"+art);
-            art.push(content);
-            console.log(">:"+art);
-            setArticles(article => [...articles, content]);
-            console.log(art);
+      contract.methods.getAllIds().call().then(ids => {
+        ids.forEach ( i => {
+          contract.methods.articleContent(i).call().then(content => {
+            setArticles(articles => [...articles, content])
+          });
         });
-        */
-
-      }
-      f();
-      }
-
-
-
+      });
+    }
   }, [contract, setArticles]);
 
-  return <div>{articles.map((article, index) => {
-    console.log("map iteration");
-    return <div key={index}>{article}</div>;
-  }
-)}</div>
+  return <div>
+      {// <div className={styles.links}>
+      //   <Link to="/">Home</Link>
+      // </div>
+    }
+      <div className={styles.articleList}>
+          {articles.map((article,index) => {
+            return <div className={styles.articleWrapper} key={index}> Article #{index} : <Link to={"/article/edit/" + index}>Edit</Link>
+        {  /* <Link to={"/article/" + index }> View </Link> */}
+                <div className={styles.articleContent} dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(article)}} />
+            </div>}
+          )}
+      </div> {/* articleWrapper*/}
+    </div>
 }
 
 const NewArticle = () => {
   const contract = useSelector(({ contract }) => contract);
   const [editor, setEditor] = useState(null);
 
-  const handleSubmit = e => {
-    e.preventDefault();
+  const handleSubmit = () => {
+    // e.preventDefault();
     if (contract) {
       contract.methods.addArticle(editor.getContent()).send();
     }
@@ -95,14 +69,62 @@ const NewArticle = () => {
       <div className={styles.mediumWrapper}>
         <textarea className={styles.editable} />
       </div>
-      <input type="submit" value="Submit" />
+      <input type="submit" value="Create" />
     </form>
   );
 }
 
-// const EditArticle = () => {
-//   return ("TODO");
-// }
+const DisplayArticle = () => {
+  const contract = useSelector(({ contract }) => contract);
+  const { id } = useParams();
+  const [content, setContent] = useState(null);
+
+  if (contract) {
+    contract.methods.articleContent(id).call().then((res) => {
+      if (res !== "")
+        setContent(res);
+      else
+        setContent("<em>404 - Article " + id + " does not exist</em>");
+    });
+  }
+
+  return (
+    <div id="article" dangerouslySetInnerHTML={{__html: DOMPurify.sanitize("<h5>Article #" + id + "</h5>" + content )}} />
+  );
+}
+
+const EditArticle = () => {
+  const contract = useSelector(({ contract }) => contract);
+  const [editor, setEditor] = useState(null);
+  const { id } = useParams();
+
+  const handleSubmit = e => {
+    e.preventDefault();
+    if (contract) {
+      contract.methods.editArticle(id, editor.getContent()).send();
+    }
+  };
+  useEffect(() => {
+    if (contract) {
+      contract.methods.articleContent(id).call().then((res) => {
+        const editor = new MediumEditor(`.${styles.editable}`);
+        editor.setContent(res);
+        setEditor(editor);
+      });
+    }
+
+  }, [setEditor, contract, id]);
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div className={styles.subTitle}>Edit an article</div>
+      <div className={styles.mediumWrapper}>
+        <textarea className={styles.editable} />
+      </div>
+      <input type="submit" value="Edit" />
+    </form>
+  );
+}
 
 const NotFound = () => {
   return <div>Not found</div>
@@ -125,6 +147,12 @@ const App = () => {
         </Route>
         <Route path="/article/all">
           <AllArticles />
+        </Route>
+        <Route path="/article/display/:id">
+          <DisplayArticle />
+        </Route>
+        <Route path="/article/edit/:id">
+          <EditArticle />
         </Route>
         <Route>
           <NotFound />

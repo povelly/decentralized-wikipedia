@@ -27,3 +27,16 @@
 .mediumWrapper {
   margin: 24px 0;
 }
+
+
+.articleList {
+  background: cyan;
+}
+
+.articleWrapper {
+  background: yellow;
+}
+
+.articleContent {
+  background: orange;
+}
